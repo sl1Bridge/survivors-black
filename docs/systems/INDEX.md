@@ -10,6 +10,8 @@
 
 | SYS-ID | Страница | Код | Данные | Тесты | Зависит от |
 |---|---|---|---|---|---|
+| SYS-ARENA | `docs/systems/arena.md` | `project.godot`, `scenes/main.tscn` | — | `tests/test_player_movement.gd` | — |
+| SYS-PLAYER | `docs/systems/player.md` | `scenes/player.tscn`, `scripts/player.gd` | — | `tests/test_player_movement.gd` | SYS-ARENA |
 
 Формат строки — пример ВНЕ реестра, это не запись:
 
