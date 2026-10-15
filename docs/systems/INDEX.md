@@ -10,8 +10,15 @@
 
 | SYS-ID | Страница | Код | Данные | Тесты | Зависит от |
 |---|---|---|---|---|---|
-| SYS-ARENA | `docs/systems/arena.md` | `project.godot`, `scenes/main.tscn` | — | `tests/test_player_movement.gd` | — |
-| SYS-PLAYER | `docs/systems/player.md` | `scenes/player.tscn`, `scripts/player.gd` | — | `tests/test_player_movement.gd` | SYS-ARENA |
+| SYS-ARENA | `docs/systems/arena.md` | `project.godot`, `scenes/main.tscn` | — | `tests/test_gameplay.gd` | — |
+| SYS-PLAYER | `docs/systems/player.md` | `scenes/player.tscn`, `scripts/player.gd` | — | `tests/test_gameplay.gd`, `tests/test_player_movement.gd` | SYS-ARENA |
+| SYS-ENEMIES | `docs/systems/enemies.md` | `scenes/enemy.tscn`, `scripts/enemy.gd`, `scripts/enemy_spawner.gd` | — | `tests/test_gameplay.gd` | SYS-ARENA, SYS-PLAYER |
+| SYS-INVENTORY | `docs/systems/inventory.md` | `scripts/inventory.gd` | — | `tests/test_gameplay.gd` | — |
+| SYS-COMBAT | `docs/systems/combat.md` | `scenes/projectile.tscn`, `scripts/pistol.gd`, `scripts/projectile.gd` | — | `tests/test_gameplay.gd` | SYS-PLAYER, SYS-ENEMIES, SYS-INVENTORY |
+| SYS-PICKUPS | `docs/systems/pickups.md` | `scenes/pickup.tscn`, `scripts/pickup.gd`, `scripts/pickup_manager.gd` | — | `tests/test_gameplay.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES |
+| SYS-PROGRESSION | `docs/systems/progression.md` | `scripts/progression.gd` | — | `tests/test_gameplay.gd` | SYS-INVENTORY, SYS-PICKUPS |
+| SYS-HUD | `docs/systems/hud.md` | `scripts/hud.gd` | — | `tests/test_gameplay.gd` | SYS-PLAYER, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION |
+| SYS-RUN | `docs/systems/run.md` | `scenes/main.tscn`, `scripts/main.gd` | — | `tests/test_gameplay.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES, SYS-COMBAT, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION, SYS-HUD |
 
 Формат строки — пример ВНЕ реестра, это не запись:
 
