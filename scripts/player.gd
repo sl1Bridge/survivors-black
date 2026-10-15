@@ -6,17 +6,26 @@ signal died
 const MOVE_SPEED := 240.0
 const PLACEHOLDER_RADIUS := 16.0
 const PLACEHOLDER_COLOR := Color.WHITE
-const MAX_HEALTH := 100
+const BASE_HEALTH := 100
+const BASE_PICKUP_RADIUS := 48.0
 const CONTACT_DAMAGE_COOLDOWN := 1.0
 
-var current_health := MAX_HEALTH
+var max_health := BASE_HEALTH
+var current_health := BASE_HEALTH
+var pickup_radius := BASE_PICKUP_RADIUS
 var damage_cooldown := 0.0
 var is_dead := false
 
 
 func _ready() -> void:
 	position = get_viewport_rect().size * 0.5
-	health_changed.emit(current_health, MAX_HEALTH)
+	health_changed.emit(current_health, max_health)
+
+
+func configure_run(run_max_health: int, run_pickup_radius: float) -> void:
+	max_health = maxi(BASE_HEALTH, run_max_health)
+	current_health = max_health
+	pickup_radius = maxf(BASE_PICKUP_RADIUS, run_pickup_radius)
 
 
 func _process(delta: float) -> void:
@@ -36,7 +45,7 @@ func take_contact_damage(amount: int) -> void:
 		return
 	current_health = maxi(0, current_health - amount)
 	damage_cooldown = CONTACT_DAMAGE_COOLDOWN
-	health_changed.emit(current_health, MAX_HEALTH)
+	health_changed.emit(current_health, max_health)
 	if current_health == 0:
 		is_dead = true
 		died.emit()
@@ -51,7 +60,11 @@ func get_current_health() -> int:
 
 
 func get_max_health() -> int:
-	return MAX_HEALTH
+	return max_health
+
+
+func get_pickup_radius() -> float:
+	return pickup_radius
 
 
 func _keep_inside_viewport() -> void:

@@ -17,8 +17,12 @@
 | SYS-COMBAT | `docs/systems/combat.md` | `scenes/projectile.tscn`, `scripts/pistol.gd`, `scripts/projectile.gd` | — | `tests/test_gameplay.gd` | SYS-PLAYER, SYS-ENEMIES, SYS-INVENTORY |
 | SYS-PICKUPS | `docs/systems/pickups.md` | `scenes/pickup.tscn`, `scripts/pickup.gd`, `scripts/pickup_manager.gd` | — | `tests/test_gameplay.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES |
 | SYS-PROGRESSION | `docs/systems/progression.md` | `scripts/progression.gd` | — | `tests/test_gameplay.gd` | SYS-INVENTORY, SYS-PICKUPS |
-| SYS-HUD | `docs/systems/hud.md` | `scripts/hud.gd` | — | `tests/test_gameplay.gd` | SYS-PLAYER, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION |
-| SYS-RUN | `docs/systems/run.md` | `scenes/main.tscn`, `scripts/main.gd` | — | `tests/test_gameplay.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES, SYS-COMBAT, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION, SYS-HUD |
+| SYS-HUD | `docs/systems/hud.md` | `scripts/hud.gd` | — | `tests/test_gameplay.gd` | SYS-PLAYER, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION, SYS-RUN |
+| SYS-SAVE | `docs/systems/save.md` | `scripts/game_profile.gd` | — | `tests/test_profile.gd`, `tests/test_run_flow.gd` | — |
+| SYS-META-PROGRESSION | `docs/systems/meta-progression.md` | `scripts/game_profile.gd`, `scripts/upgrades_menu.gd` | — | `tests/test_profile.gd`, `tests/test_menus.gd`, `tests/test_run_flow.gd` | SYS-SAVE |
+| SYS-AUDIO | `docs/systems/audio.md` | `scripts/game_profile.gd`, `scripts/settings_menu.gd` | — | `tests/test_profile.gd`, `tests/test_menus.gd` | SYS-SAVE |
+| SYS-MENU | `docs/systems/menu.md` | `scenes/main_menu.tscn`, `scenes/settings_menu.tscn`, `scenes/upgrades_menu.tscn`, `scripts/main_menu.gd`, `scripts/settings_menu.gd`, `scripts/upgrades_menu.gd` | — | `tests/test_menus.gd`, `tests/test_run_flow.gd` | SYS-RUN, SYS-META-PROGRESSION, SYS-AUDIO, SYS-SAVE |
+| SYS-RUN | `docs/systems/run.md` | `scenes/main.tscn`, `scripts/main.gd` | — | `tests/test_gameplay.gd`, `tests/test_menus.gd`, `tests/test_run_flow.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES, SYS-COMBAT, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION, SYS-HUD, SYS-MENU, SYS-SAVE, SYS-META-PROGRESSION |
 
 Формат строки — пример ВНЕ реестра, это не запись:
 

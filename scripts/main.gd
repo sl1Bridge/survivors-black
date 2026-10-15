@@ -8,8 +8,19 @@ const PICKUP_MANAGER_SCRIPT: Script = preload("res://scripts/pickup_manager.gd")
 const PROGRESSION_SCRIPT: Script = preload("res://scripts/progression.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 
+var run_finished := false
+var profile: Node
+var pickups: Node2D
+
+
+func configure_profile(profile_node: Node) -> void:
+	profile = profile_node
+
 
 func _ready() -> void:
+	if not is_instance_valid(profile):
+		profile = get_node("/root/GameProfile")
+	profile.call("begin_run")
 	var enemies := Node2D.new()
 	enemies.name = "Enemies"
 	add_child(enemies)
@@ -19,6 +30,7 @@ func _ready() -> void:
 
 	var player: Node2D = PLAYER_SCENE.instantiate() as Node2D
 	player.name = "Player"
+	player.call("configure_run", profile.call("get_max_health"), profile.call("get_pickup_radius"))
 	player.add_to_group("player")
 	add_child(player)
 
@@ -31,7 +43,7 @@ func _ready() -> void:
 	progression.call("configure", inventory)
 	add_child(progression)
 
-	var pickups: Node2D = PICKUP_MANAGER_SCRIPT.new() as Node2D
+	pickups = PICKUP_MANAGER_SCRIPT.new() as Node2D
 	pickups.name = "PickupManager"
 	pickups.call("configure", player)
 	add_child(pickups)
@@ -53,9 +65,19 @@ func _ready() -> void:
 	hud.call("configure", player, inventory, pickups, progression)
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(hud)
+	hud.connect("return_to_menu_pressed", Callable(self, "_return_to_menu"))
 
 	player.connect("died", Callable(self, "_on_player_died"))
 
 
 func _on_player_died() -> void:
+	if run_finished:
+		return
+	run_finished = true
+	profile.call("finish_run", int(pickups.get("total_gold")))
 	get_tree().paused = true
+
+
+func _return_to_menu() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")

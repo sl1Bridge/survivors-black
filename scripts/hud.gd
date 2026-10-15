@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+signal return_to_menu_pressed
+
 var player: Node
 var inventory: Node
 var pickup_manager: Node
@@ -14,6 +16,7 @@ var xp_bar: ProgressBar
 var upgrade_overlay: ColorRect
 var upgrade_title: Label
 var game_over_overlay: ColorRect
+var game_over_gold_label: Label
 
 
 func configure(player_node: Node, inventory_node: Node, pickup_node: Node, progression_node: Node) -> void:
@@ -144,10 +147,20 @@ func _build_game_over_overlay(root: Control) -> void:
 	game_over_overlay.add_child(center)
 	var panel := PanelContainer.new()
 	center.add_child(panel)
+	var content := VBoxContainer.new()
+	panel.add_child(content)
 	var label := Label.new()
 	label.text = "ЗАБЕГ ОКОНЧЕН"
 	label.add_theme_font_size_override("font_size", 32)
-	panel.add_child(label)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(label)
+	game_over_gold_label = Label.new()
+	game_over_gold_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(game_over_gold_label)
+	var menu_button := Button.new()
+	menu_button.text = "В меню"
+	menu_button.pressed.connect(_on_return_to_menu_pressed)
+	content.add_child(menu_button)
 
 
 func _connect_signals() -> void:
@@ -195,4 +208,9 @@ func _on_upgrade_button_pressed() -> void:
 
 
 func _on_player_died() -> void:
+	game_over_gold_label.text = "Получено золота: %d" % int(pickup_manager.get("total_gold"))
 	game_over_overlay.visible = true
+
+
+func _on_return_to_menu_pressed() -> void:
+	return_to_menu_pressed.emit()

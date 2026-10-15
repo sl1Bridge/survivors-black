@@ -3,6 +3,7 @@ extends Node2D
 signal collected(kind: StringName, amount: int)
 
 const RADIUS := 7.0
+const MAGNET_SPEED := 360.0
 const EXPERIENCE_COLOR := Color(0.35, 0.95, 1.0)
 const GOLD_COLOR := Color(1.0, 0.78, 0.2)
 
@@ -18,14 +19,27 @@ func configure(pickup_kind: StringName, pickup_amount: int, player_node: Node2D)
 	player = player_node
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if is_collected or not is_instance_valid(player) or player.get("is_dead"):
 		return
-	var collection_distance := float(player.call("get_collision_radius")) + RADIUS
-	if global_position.distance_to(player.global_position) <= collection_distance:
-		is_collected = true
-		collected.emit(kind, amount)
-		queue_free()
+	var to_player := player.global_position - global_position
+	var distance := to_player.length()
+	var touch_distance := float(player.call("get_collision_radius")) + RADIUS
+	if distance <= touch_distance:
+		_collect()
+		return
+	if distance <= float(player.call("get_pickup_radius")) and distance > 0.0:
+		global_position = global_position.move_toward(player.global_position, MAGNET_SPEED * delta)
+		if global_position.distance_to(player.global_position) <= touch_distance:
+			_collect()
+
+
+func _collect() -> void:
+	if is_collected:
+		return
+	is_collected = true
+	collected.emit(kind, amount)
+	queue_free()
 
 
 func _draw() -> void:

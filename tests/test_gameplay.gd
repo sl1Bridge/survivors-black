@@ -2,6 +2,7 @@ extends SceneTree
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
+const PICKUP_SCENE: PackedScene = preload("res://scenes/pickup.tscn")
 const INVENTORY_SCRIPT: Script = preload("res://scripts/inventory.gd")
 const PISTOL_SCRIPT: Script = preload("res://scripts/pistol.gd")
 const PICKUP_MANAGER_SCRIPT: Script = preload("res://scripts/pickup_manager.gd")
@@ -21,6 +22,21 @@ func _run() -> void:
 	var player: Node2D = PLAYER_SCENE.instantiate() as Node2D
 	root.add_child(player)
 	await process_frame
+
+	var magnet_pickup: Node2D = PICKUP_SCENE.instantiate() as Node2D
+	magnet_pickup.call("configure", &"xp", 1, player)
+	magnet_pickup.global_position = player.global_position + Vector2(60.0, 0.0)
+	root.add_child(magnet_pickup)
+	magnet_pickup.call("_process", 0.1)
+	_check(absf(magnet_pickup.global_position.distance_to(player.global_position) - 60.0) < 0.01, "Pickup outside the magnetic radius should remain still")
+	player.call("configure_run", 120, 80.0)
+	_check(int(player.get("max_health")) == 120, "Permanent health bonus should set next-run maximum health")
+	_check(int(player.get("current_health")) == 120, "Player should start a run at upgraded maximum health")
+	magnet_pickup.call("_process", 0.05)
+	_check(magnet_pickup.global_position.distance_to(player.global_position) < 60.0, "Pickup should move toward the player inside the upgraded radius")
+	magnet_pickup.call("_process", 0.2)
+	_check(bool(magnet_pickup.get("is_collected")), "Magnetized pickup should be collected on contact")
+	player.call("configure_run", 100, 80.0)
 
 	var inventory: Node = INVENTORY_SCRIPT.new()
 	root.add_child(inventory)
