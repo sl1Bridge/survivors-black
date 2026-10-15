@@ -27,6 +27,7 @@ func _run() -> void:
 	await process_frame
 	var player: Node = run.get_node("Player")
 	var hud: Node = run.get_node("HUD")
+	var random_events: Node = run.get_node("RandomEvents")
 	_check(str(hud.get("ability_label").text) == "Готово", "HUD should show that the ability is ready")
 	_check(int(player.get("max_health")) == 140, "Run should apply permanent maximum-health upgrades")
 	_check(absf(float(player.get("pickup_radius")) - 80.0) < 0.01, "Run should apply permanent pickup-radius upgrades")
@@ -37,6 +38,9 @@ func _run() -> void:
 	Input.action_release("pause_game")
 	_check(paused, "Pause action should pause the run")
 	_check(bool(hud.get("pause_overlay").visible), "Pause action should open the pause menu")
+	var comet_clock_before_pause := float(random_events.get("comet_elapsed"))
+	await process_frame
+	_check(absf(float(random_events.get("comet_elapsed")) - comet_clock_before_pause) < 0.00001, "Event timers should stop while paused")
 	var pause_buttons: Array = hud.get("pause_overlay").find_children("*", "Button", true, false)
 	_check(pause_buttons.size() == 2, "Pause menu should have surrender and close buttons")
 	_check(pause_buttons[0].text == "Сдаться" and pause_buttons[1].text == "Закрыть", "Pause menu actions should be in the expected order")
@@ -73,6 +77,19 @@ func _run() -> void:
 	_check(bool(death_run.get_node("HUD").get("game_over_overlay").visible), "Player death should show the result screen")
 	paused = false
 	death_run.queue_free()
+	await process_frame
+	var victory_run: Node2D = RUN_SCENE.instantiate() as Node2D
+	victory_run.call("configure_profile", profile)
+	root.add_child(victory_run)
+	await process_frame
+	victory_run.get_node("PickupManager").set("total_gold", 4)
+	victory_run.get_node("RandomEvents").emit_signal("boss_defeated")
+	_check(int(profile.get("banked_gold")) == 9, "Boss victory should bank run gold once")
+	_check(str(victory_run.get_node("HUD").get("game_over_title").text) == "ПОБЕДА!", "Boss defeat should show the victory result")
+	_check(paused, "Boss victory should end and pause the run")
+	paused = false
+	victory_run.queue_free()
+	await process_frame
 	profile.queue_free()
 	await process_frame
 	var absolute_path := ProjectSettings.globalize_path(TEST_SAVE_PATH)

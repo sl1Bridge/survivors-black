@@ -19,6 +19,7 @@ var xp_bar: ProgressBar
 var upgrade_overlay: ColorRect
 var upgrade_title: Label
 var game_over_overlay: ColorRect
+var game_over_title: Label
 var game_over_gold_label: Label
 var pause_overlay: ColorRect
 var ability_label: Label
@@ -234,11 +235,11 @@ func _build_game_over_overlay(root: Control) -> void:
 	center.add_child(panel)
 	var content := VBoxContainer.new()
 	panel.add_child(content)
-	var label := Label.new()
-	label.text = "ЗАБЕГ ОКОНЧЕН"
-	label.add_theme_font_size_override("font_size", 32)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(label)
+	game_over_title = Label.new()
+	game_over_title.text = "ЗАБЕГ ОКОНЧЕН"
+	game_over_title.add_theme_font_size_override("font_size", 32)
+	game_over_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(game_over_title)
 	game_over_gold_label = Label.new()
 	game_over_gold_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(game_over_gold_label)
@@ -299,9 +300,10 @@ func _on_player_died() -> void:
 	show_run_finished(int(pickup_manager.get("total_gold")))
 
 
-func show_run_finished(run_gold: int) -> void:
+func show_run_finished(run_gold: int, is_victory: bool = false) -> void:
 	run_finished = true
 	pause_overlay.visible = false
+	game_over_title.text = "ПОБЕДА!" if is_victory else "ЗАБЕГ ОКОНЧЕН"
 	game_over_gold_label.text = "Получено золота: %d" % run_gold
 	game_over_overlay.visible = true
 

@@ -8,11 +8,13 @@ const PICKUP_MANAGER_SCRIPT: Script = preload("res://scripts/pickup_manager.gd")
 const PROGRESSION_SCRIPT: Script = preload("res://scripts/progression.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 const ABILITY_SCRIPT: Script = preload("res://scripts/ability.gd")
+const RANDOM_EVENTS_SCRIPT: Script = preload("res://scripts/random_events.gd")
 
 var run_finished := false
 var profile: Node
 var pickups: Node2D
 var hud: CanvasLayer
+var random_events: Node2D
 
 
 func configure_profile(profile_node: Node) -> void:
@@ -58,6 +60,12 @@ func _ready() -> void:
 	spawner.connect("enemy_defeated", Callable(pickups, "handle_enemy_defeated"))
 	add_child(spawner)
 
+	random_events = RANDOM_EVENTS_SCRIPT.new() as Node2D
+	random_events.name = "RandomEvents"
+	random_events.call("configure", player, enemies, spawner, pickups)
+	add_child(random_events)
+	random_events.connect("boss_defeated", Callable(self, "_on_boss_defeated"))
+
 	var pistol: Node = PISTOL_SCRIPT.new()
 	pistol.name = "Pistol"
 	pistol.call("configure", player, inventory, projectiles)
@@ -87,14 +95,18 @@ func _on_surrender_pressed() -> void:
 	_finish_run()
 
 
-func _finish_run() -> void:
+func _on_boss_defeated() -> void:
+	_finish_run(true)
+
+
+func _finish_run(is_victory: bool = false) -> void:
 	if run_finished:
 		return
 	run_finished = true
 	var run_gold := int(pickups.get("total_gold"))
 	profile.call("finish_run", run_gold)
 	get_tree().paused = true
-	hud.call("show_run_finished", run_gold)
+	hud.call("show_run_finished", run_gold, is_victory)
 
 
 func _return_to_menu() -> void:

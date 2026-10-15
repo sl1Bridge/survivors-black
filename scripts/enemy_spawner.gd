@@ -35,33 +35,42 @@ func _process(delta: float) -> void:
 
 
 func _spawn_enemy() -> void:
-	if get_tree().get_nodes_in_group("enemies").size() >= MAX_ACTIVE_ENEMIES:
-		return
+	var is_elite := rng.randf() < ELITE_SPAWN_CHANCE
+	spawn_enemy_at(_random_edge_position(), is_elite)
+
+
+func spawn_enemy_at(world_position: Vector2, is_elite: bool = false) -> Node2D:
+	if not can_spawn_enemy():
+		return null
 	if not is_instance_valid(enemies_container):
-		return
+		return null
 
 	var enemy: Node2D = ENEMY_SCENE.instantiate() as Node2D
-	var is_elite := rng.randf() < ELITE_SPAWN_CHANCE
 	enemy.add_to_group("enemies")
-	enemy.position = _random_edge_position()
 	enemy.call("setup", player, is_elite, projectile_container)
 	enemy.connect("defeated", Callable(self, "_on_enemy_defeated"))
 	enemies_container.add_child(enemy)
+	enemy.global_position = world_position
+	return enemy
 
 
-func _random_edge_position() -> Vector2:
+func can_spawn_enemy() -> bool:
+	return get_tree().get_nodes_in_group("enemies").size() < MAX_ACTIVE_ENEMIES
+
+
+func _random_edge_position(margin: float = SPAWN_MARGIN) -> Vector2:
 	var size := get_viewport_rect().size
-	var right := maxf(SPAWN_MARGIN, size.x - SPAWN_MARGIN)
-	var bottom := maxf(SPAWN_MARGIN, size.y - SPAWN_MARGIN)
+	var right := maxf(margin, size.x - margin)
+	var bottom := maxf(margin, size.y - margin)
 	match rng.randi_range(0, 3):
 		0:
-			return Vector2(SPAWN_MARGIN, rng.randf_range(SPAWN_MARGIN, bottom))
+			return Vector2(margin, rng.randf_range(margin, bottom))
 		1:
-			return Vector2(right, rng.randf_range(SPAWN_MARGIN, bottom))
+			return Vector2(right, rng.randf_range(margin, bottom))
 		2:
-			return Vector2(rng.randf_range(SPAWN_MARGIN, right), SPAWN_MARGIN)
+			return Vector2(rng.randf_range(margin, right), margin)
 		_:
-			return Vector2(rng.randf_range(SPAWN_MARGIN, right), bottom)
+			return Vector2(rng.randf_range(margin, right), bottom)
 
 
 func _on_enemy_defeated(world_position: Vector2, is_elite: bool) -> void:

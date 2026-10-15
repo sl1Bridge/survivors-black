@@ -57,6 +57,15 @@ func take_damage(amount: int) -> void:
 		died.emit()
 
 
+func heal(amount: int) -> void:
+	if is_dead or amount <= 0:
+		return
+	var previous_health := current_health
+	current_health = mini(max_health, current_health + amount)
+	if current_health != previous_health:
+		health_changed.emit(current_health, max_health)
+
+
 func get_collision_radius() -> float:
 	return PLACEHOLDER_RADIUS
 

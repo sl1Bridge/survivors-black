@@ -40,13 +40,22 @@ func _process(delta: float) -> void:
 
 
 func _find_nearest_target() -> Node2D:
+	var enemy_target := _find_nearest_in_group("enemies")
+	if is_instance_valid(enemy_target):
+		return enemy_target
+	return _find_nearest_in_group("breakable_crates")
+
+
+func _find_nearest_in_group(group_name: StringName) -> Node2D:
 	var nearest: Node2D
 	var nearest_distance := INF
-	for candidate in get_tree().get_nodes_in_group("enemies"):
+	for candidate in get_tree().get_nodes_in_group(group_name):
 		if not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
 			continue
 		var candidate_node := candidate as Node2D
 		var distance := player.global_position.distance_squared_to(candidate_node.global_position)
+		if distance > ATTACK_RANGE * ATTACK_RANGE:
+			continue
 		if distance < nearest_distance:
 			nearest_distance = distance
 			nearest = candidate_node

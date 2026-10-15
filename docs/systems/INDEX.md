@@ -11,13 +11,14 @@
 | SYS-ID | Страница | Код | Данные | Тесты | Зависит от |
 |---|---|---|---|---|---|
 | SYS-ARENA | `docs/systems/arena.md` | `project.godot`, `scenes/main.tscn` | — | `tests/test_gameplay.gd` | SYS-VIDEO |
-| SYS-PLAYER | `docs/systems/player.md` | `scenes/player.tscn`, `scripts/player.gd` | — | `tests/test_gameplay.gd`, `tests/test_player_movement.gd` | SYS-ARENA |
-| SYS-ENEMIES | `docs/systems/enemies.md` | `scenes/enemy.tscn`, `scenes/enemy_projectile.tscn`, `scripts/enemy.gd`, `scripts/enemy_spawner.gd`, `scripts/enemy_projectile.gd` | — | `tests/test_gameplay.gd` | SYS-ARENA, SYS-PLAYER |
+| SYS-PLAYER | `docs/systems/player.md` | `scenes/player.tscn`, `scripts/player.gd` | — | `tests/test_gameplay.gd`, `tests/test_player_movement.gd`, `tests/test_random_events.gd` | SYS-ARENA |
+| SYS-ENEMIES | `docs/systems/enemies.md` | `scenes/enemy.tscn`, `scenes/enemy_projectile.tscn`, `scenes/boss.tscn`, `scripts/enemy.gd`, `scripts/enemy_spawner.gd`, `scripts/enemy_projectile.gd`, `scripts/boss.gd` | — | `tests/test_gameplay.gd`, `tests/test_random_events.gd` | SYS-ARENA, SYS-PLAYER |
 | SYS-INVENTORY | `docs/systems/inventory.md` | `scripts/inventory.gd` | — | `tests/test_gameplay.gd` | — |
-| SYS-COMBAT | `docs/systems/combat.md` | `scenes/projectile.tscn`, `scripts/pistol.gd`, `scripts/projectile.gd` | — | `tests/test_gameplay.gd` | SYS-PLAYER, SYS-ENEMIES, SYS-INVENTORY |
-| SYS-PICKUPS | `docs/systems/pickups.md` | `scenes/pickup.tscn`, `scripts/pickup.gd`, `scripts/pickup_manager.gd` | — | `tests/test_gameplay.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES |
+| SYS-EVENTS | `docs/systems/events.md` | `scenes/comet.tscn`, `scenes/breakable_crate.tscn`, `scripts/comet.gd`, `scripts/breakable_crate.gd`, `scripts/random_events.gd` | — | `tests/test_random_events.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES, SYS-PICKUPS |
+| SYS-COMBAT | `docs/systems/combat.md` | `scenes/projectile.tscn`, `scripts/pistol.gd`, `scripts/projectile.gd` | — | `tests/test_gameplay.gd`, `tests/test_random_events.gd` | SYS-PLAYER, SYS-ENEMIES, SYS-EVENTS, SYS-INVENTORY |
+| SYS-PICKUPS | `docs/systems/pickups.md` | `scenes/pickup.tscn`, `scripts/pickup.gd`, `scripts/pickup_manager.gd` | — | `tests/test_gameplay.gd`, `tests/test_random_events.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES |
 | SYS-PROGRESSION | `docs/systems/progression.md` | `scripts/progression.gd` | — | `tests/test_gameplay.gd` | SYS-INVENTORY, SYS-PICKUPS |
-| SYS-ABILITY | `docs/systems/ability.md` | `scenes/ability_wave.tscn`, `scripts/ability.gd`, `scripts/ability_wave.gd` | — | `tests/test_gameplay.gd` | SYS-PLAYER, SYS-ENEMIES, SYS-INPUT |
+| SYS-ABILITY | `docs/systems/ability.md` | `scenes/ability_wave.tscn`, `scripts/ability.gd`, `scripts/ability_wave.gd` | — | `tests/test_gameplay.gd`, `tests/test_random_events.gd` | SYS-PLAYER, SYS-ENEMIES, SYS-INPUT |
 | SYS-HUD | `docs/systems/hud.md` | `scripts/hud.gd` | — | `tests/test_gameplay.gd`, `tests/test_run_flow.gd` | SYS-PLAYER, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION, SYS-ABILITY, SYS-INPUT, SYS-VIDEO, SYS-RUN |
 | SYS-SAVE | `docs/systems/save.md` | `scripts/game_profile.gd` | — | `tests/test_profile.gd`, `tests/test_run_flow.gd` | — |
 | SYS-META-PROGRESSION | `docs/systems/meta-progression.md` | `scripts/game_profile.gd`, `scripts/upgrades_menu.gd` | — | `tests/test_profile.gd`, `tests/test_menus.gd`, `tests/test_run_flow.gd` | SYS-SAVE |
@@ -25,7 +26,7 @@
 | SYS-MENU | `docs/systems/menu.md` | `scenes/main_menu.tscn`, `scenes/settings_menu.tscn`, `scenes/audio_settings.tscn`, `scenes/graphics_settings.tscn`, `scenes/controls_menu.tscn`, `scenes/upgrades_menu.tscn`, `scripts/main_menu.gd`, `scripts/settings_menu.gd`, `scripts/audio_settings.gd`, `scripts/graphics_settings.gd`, `scripts/controls_menu.gd`, `scripts/upgrades_menu.gd` | — | `tests/test_menus.gd`, `tests/test_run_flow.gd` | SYS-RUN, SYS-META-PROGRESSION, SYS-AUDIO, SYS-VIDEO, SYS-INPUT, SYS-SAVE |
 | SYS-INPUT | `docs/systems/input.md` | `project.godot`, `scripts/game_profile.gd`, `scripts/controls_menu.gd` | — | `tests/test_profile.gd`, `tests/test_menus.gd`, `tests/test_player_movement.gd` | SYS-SAVE |
 | SYS-VIDEO | `docs/systems/video.md` | `scripts/game_profile.gd`, `scripts/graphics_settings.gd` | — | `tests/test_profile.gd`, `tests/test_menus.gd` | SYS-SAVE |
-| SYS-RUN | `docs/systems/run.md` | `scenes/main.tscn`, `scripts/main.gd` | — | `tests/test_gameplay.gd`, `tests/test_menus.gd`, `tests/test_run_flow.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES, SYS-COMBAT, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION, SYS-ABILITY, SYS-INPUT, SYS-HUD, SYS-VIDEO, SYS-MENU, SYS-SAVE, SYS-META-PROGRESSION |
+| SYS-RUN | `docs/systems/run.md` | `scenes/main.tscn`, `scripts/main.gd`, `scripts/random_events.gd` | — | `tests/test_gameplay.gd`, `tests/test_menus.gd`, `tests/test_run_flow.gd`, `tests/test_random_events.gd` | SYS-ARENA, SYS-PLAYER, SYS-ENEMIES, SYS-EVENTS, SYS-COMBAT, SYS-INVENTORY, SYS-PICKUPS, SYS-PROGRESSION, SYS-ABILITY, SYS-INPUT, SYS-HUD, SYS-VIDEO, SYS-MENU, SYS-SAVE, SYS-META-PROGRESSION |
 
 Формат строки — пример ВНЕ реестра, это не запись:
 
