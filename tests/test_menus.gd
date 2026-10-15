@@ -4,6 +4,7 @@ const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/main_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/settings_menu.tscn")
 const AUDIO_SETTINGS_SCENE: PackedScene = preload("res://scenes/audio_settings.tscn")
 const CONTROLS_MENU_SCENE: PackedScene = preload("res://scenes/controls_menu.tscn")
+const GRAPHICS_SETTINGS_SCENE: PackedScene = preload("res://scenes/graphics_settings.tscn")
 const UPGRADES_MENU_SCENE: PackedScene = preload("res://scenes/upgrades_menu.tscn")
 const PROFILE_SCRIPT: Script = preload("res://scripts/game_profile.gd")
 const TEST_SAVE_PATH := "user://test_survivors_black_menus.cfg"
@@ -56,7 +57,7 @@ func _run() -> void:
 	var settings_labels: Array[String] = []
 	for button in settings_buttons:
 		settings_labels.append(button.text)
-	_check(settings_labels == ["Звук", "Управление", "Назад"], "Settings menu should contain sound, controls, and back")
+	_check(settings_labels == ["Звук", "Графика", "Управление", "Назад"], "Settings menu should contain sound, graphics, controls, and back")
 	settings_menu.queue_free()
 	await process_frame
 
@@ -96,6 +97,41 @@ func _run() -> void:
 	controls_menu.call("_input", rebind_event)
 	_check(int(profile.call("get_key_binding", &"move_up")) == KEY_W, "Duplicate key bindings should be rejected")
 	controls_menu.queue_free()
+	await process_frame
+
+	var graphics_menu: Control = GRAPHICS_SETTINGS_SCENE.instantiate() as Control
+	graphics_menu.call("configure", profile)
+	root.add_child(graphics_menu)
+	await process_frame
+	_check(graphics_menu.get("resolution_option").item_count >= 1, "Graphics menu should offer the current resolution")
+	_check(graphics_menu.get("fps_option").item_count == 6, "Graphics menu should offer all FPS cap choices")
+	var current_resolution: Vector2i = profile.call("get_resolution")
+	var alternate_resolution_index := -1
+	for index in range(graphics_menu.get("resolution_option").item_count):
+		var option_size: Vector2i = graphics_menu.get("resolution_option").get_item_metadata(index)
+		if option_size != current_resolution:
+			alternate_resolution_index = index
+			break
+	if alternate_resolution_index >= 0:
+		graphics_menu.call("_on_resolution_selected", alternate_resolution_index)
+		_check(bool(graphics_menu.get("pending_resolution")), "Resolution change should ask for confirmation")
+		_check(profile.call("get_resolution") == current_resolution, "Preview should not save resolution before confirmation")
+		graphics_menu.call("_process", 10.0)
+		_check(not bool(graphics_menu.get("pending_resolution")), "Reverting should close the resolution confirmation")
+		graphics_menu.call("_on_resolution_selected", alternate_resolution_index)
+		graphics_menu.call("_confirm_resolution")
+		_check(profile.call("get_resolution") == graphics_menu.get("selected_resolution"), "Confirmed resolution should be saved")
+		profile.call("commit_resolution", current_resolution)
+	var sixty_fps_index := -1
+	for index in range(graphics_menu.get("fps_option").item_count):
+		if int(graphics_menu.get("fps_option").get_item_metadata(index)) == 60:
+			sixty_fps_index = index
+			break
+	_check(sixty_fps_index >= 0, "FPS cap choices should include 60")
+	graphics_menu.call("_on_fps_selected", sixty_fps_index)
+	_check(Engine.max_fps == 60, "FPS setting should apply immediately")
+	profile.call("set_fps_cap", 0)
+	graphics_menu.queue_free()
 	await process_frame
 
 	var upgrades_menu: Control = UPGRADES_MENU_SCENE.instantiate() as Control

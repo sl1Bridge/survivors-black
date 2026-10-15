@@ -1,6 +1,7 @@
 extends Control
 
 const AUDIO_SCENE_PATH := "res://scenes/audio_settings.tscn"
+const GRAPHICS_SCENE_PATH := "res://scenes/graphics_settings.tscn"
 const CONTROLS_SCENE_PATH := "res://scenes/controls_menu.tscn"
 const MAIN_MENU_PATH := "res://scenes/main_menu.tscn"
 
@@ -20,6 +21,7 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 28)
 	content.add_child(title)
 	_add_button(content, "Звук", _open_audio)
+	_add_button(content, "Графика", _open_graphics)
 	_add_button(content, "Управление", _open_controls)
 	_add_button(content, "Назад", _return_to_menu)
 
@@ -38,6 +40,10 @@ func _open_audio() -> void:
 
 func _open_controls() -> void:
 	get_tree().change_scene_to_file(CONTROLS_SCENE_PATH)
+
+
+func _open_graphics() -> void:
+	get_tree().change_scene_to_file(GRAPHICS_SCENE_PATH)
 
 
 func _return_to_menu() -> void:

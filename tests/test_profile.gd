@@ -11,6 +11,8 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	var original_window_size := DisplayServer.window_get_size()
+	var original_fps_cap := Engine.max_fps
 	var profile: Node = PROFILE_SCRIPT.new()
 	profile.set("profile_path", TEST_SAVE_PATH)
 	root.add_child(profile)
@@ -34,6 +36,13 @@ func _run() -> void:
 	_check(absf(float(profile.call("get_pickup_radius")) - 80.0) < 0.01, "First pickup upgrade should add thirty-two pixels")
 	profile.call("set_sfx_volume", 35.0)
 	profile.call("set_music_volume", 65.0)
+	var resolution_to_save: Vector2i = profile.call("get_resolution")
+	for candidate in profile.call("get_resolution_options"):
+		if candidate != resolution_to_save:
+			resolution_to_save = candidate
+			break
+	_check(bool(profile.call("commit_resolution", resolution_to_save)), "Supported resolution should be saved")
+	_check(bool(profile.call("set_fps_cap", 120)), "FPS cap should be configurable")
 	_check(bool(profile.call("set_key_binding", &"ability", KEY_R)), "Ability key binding should be changeable")
 	_check(bool(profile.call("set_key_binding", &"pause_game", KEY_P)), "Pause key binding should be changeable")
 	_check(not bool(profile.call("set_key_binding", &"move_up", KEY_R)), "Duplicate key binding should be rejected")
@@ -56,6 +65,9 @@ func _run() -> void:
 	_check(int(loaded_profile.get("pickup_radius_upgrade_level")) == 1, "Pickup upgrade should persist")
 	_check(absf(float(loaded_profile.get("sfx_volume")) - 35.0) < 0.01, "SFX volume should persist")
 	_check(absf(float(loaded_profile.get("music_volume")) - 65.0) < 0.01, "Music volume should persist")
+	_check(loaded_profile.call("get_resolution") == resolution_to_save, "Resolution should persist")
+	_check(int(loaded_profile.get("fps_cap")) == 120, "FPS cap should persist")
+	_check(Engine.max_fps == 120, "Loaded FPS cap should apply to the engine")
 	_check(int(loaded_profile.call("get_key_binding", &"ability")) == KEY_R, "Ability binding should persist")
 	_check(int(loaded_profile.call("get_key_binding", &"pause_game")) == KEY_P, "Pause binding should persist")
 	_check(
@@ -66,6 +78,8 @@ func _run() -> void:
 	var absolute_path := ProjectSettings.globalize_path(TEST_SAVE_PATH)
 	if FileAccess.file_exists(TEST_SAVE_PATH):
 		DirAccess.remove_absolute(absolute_path)
+	DisplayServer.window_set_size(original_window_size)
+	Engine.max_fps = original_fps_cap
 
 	if failures > 0:
 		push_error("%d profile test(s) failed" % failures)

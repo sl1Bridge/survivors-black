@@ -8,6 +8,10 @@ const HEALTH_PER_UPGRADE := 20
 const BASE_PICKUP_RADIUS := 48.0
 const PICKUP_RADIUS_PER_UPGRADE := 32.0
 const MAX_UPGRADE_LEVEL := 5
+const DEFAULT_FPS_CAP := 0
+const FPS_CAP_OPTIONS := [0, 30, 60, 120, 144, 240]
+const DEFAULT_PROJECT_RESOLUTION := Vector2i(1152, 648)
+const STANDARD_RESOLUTIONS := [DEFAULT_PROJECT_RESOLUTION, Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080)]
 const DEFAULT_KEY_BINDINGS := {
 	&"move_up": KEY_W,
 	&"move_left": KEY_A,
@@ -24,15 +28,24 @@ var pickup_radius_upgrade_level := 0
 var sfx_volume := 100.0
 var music_volume := 100.0
 var key_bindings: Dictionary = DEFAULT_KEY_BINDINGS.duplicate()
+var resolution_width := 1152
+var resolution_height := 648
+var fps_cap := DEFAULT_FPS_CAP
 var _run_reward_committed := true
 
 
 func _ready() -> void:
 	_ensure_audio_bus("SFX")
 	_ensure_audio_bus("Music")
+	var current_window_size := DisplayServer.window_get_size()
+	if current_window_size.x > 0 and current_window_size.y > 0:
+		resolution_width = current_window_size.x
+		resolution_height = current_window_size.y
 	_load_profile()
 	_apply_key_bindings()
 	_apply_audio_settings()
+	_apply_fps_cap()
+	_apply_window_resolution(get_resolution())
 
 
 func begin_run() -> void:
@@ -103,6 +116,50 @@ func set_music_volume(value: float) -> void:
 	_save_profile()
 
 
+func get_resolution() -> Vector2i:
+	return Vector2i(resolution_width, resolution_height)
+
+
+func get_fps_cap_options() -> Array[int]:
+	return FPS_CAP_OPTIONS
+
+
+func get_resolution_options() -> Array[Vector2i]:
+	var options: Array[Vector2i] = [get_resolution()]
+	for resolution in STANDARD_RESOLUTIONS:
+		if resolution != get_resolution() and _fits_current_screen(resolution):
+			options.append(resolution)
+	return options
+
+
+func preview_resolution(resolution: Vector2i) -> bool:
+	if not _is_supported_resolution(resolution):
+		return false
+	_apply_window_resolution(resolution)
+	return true
+
+
+func commit_resolution(resolution: Vector2i) -> bool:
+	if not _is_supported_resolution(resolution):
+		return false
+	resolution_width = resolution.x
+	resolution_height = resolution.y
+	_apply_window_resolution(resolution)
+	_save_profile()
+	profile_changed.emit()
+	return true
+
+
+func set_fps_cap(value: int) -> bool:
+	if not FPS_CAP_OPTIONS.has(value):
+		return false
+	fps_cap = value
+	_apply_fps_cap()
+	_save_profile()
+	profile_changed.emit()
+	return true
+
+
 func get_key_binding(action: StringName) -> int:
 	return int(key_bindings.get(action, DEFAULT_KEY_BINDINGS.get(action, 0)))
 
@@ -129,6 +186,15 @@ func _load_profile() -> void:
 	pickup_radius_upgrade_level = clampi(int(config.get_value("upgrades", "pickup_radius", 0)), 0, MAX_UPGRADE_LEVEL)
 	sfx_volume = clampf(float(config.get_value("audio", "sfx", 100.0)), 0.0, 100.0)
 	music_volume = clampf(float(config.get_value("audio", "music", 100.0)), 0.0, 100.0)
+	var saved_resolution := Vector2i(
+		int(config.get_value("graphics", "width", resolution_width)),
+		int(config.get_value("graphics", "height", resolution_height))
+	)
+	if _is_supported_resolution(saved_resolution):
+		resolution_width = saved_resolution.x
+		resolution_height = saved_resolution.y
+	var saved_fps_cap := int(config.get_value("graphics", "fps_cap", DEFAULT_FPS_CAP))
+	fps_cap = saved_fps_cap if FPS_CAP_OPTIONS.has(saved_fps_cap) else DEFAULT_FPS_CAP
 	var loaded_bindings: Dictionary = DEFAULT_KEY_BINDINGS.duplicate()
 	for action in DEFAULT_KEY_BINDINGS:
 		loaded_bindings[action] = int(config.get_value("controls", String(action), DEFAULT_KEY_BINDINGS[action]))
@@ -149,6 +215,9 @@ func _save_profile() -> void:
 	config.set_value("upgrades", "pickup_radius", pickup_radius_upgrade_level)
 	config.set_value("audio", "sfx", sfx_volume)
 	config.set_value("audio", "music", music_volume)
+	config.set_value("graphics", "width", resolution_width)
+	config.set_value("graphics", "height", resolution_height)
+	config.set_value("graphics", "fps_cap", fps_cap)
 	for action in key_bindings:
 		config.set_value("controls", String(action), int(key_bindings[action]))
 	var error := config.save(profile_path)
@@ -168,6 +237,27 @@ func _ensure_audio_bus(bus_name: String) -> void:
 func _apply_audio_settings() -> void:
 	_apply_bus_volume("SFX", sfx_volume)
 	_apply_bus_volume("Music", music_volume)
+
+
+func _apply_fps_cap() -> void:
+	Engine.max_fps = fps_cap
+
+
+func _apply_window_resolution(resolution: Vector2i) -> void:
+	DisplayServer.window_set_size(resolution)
+
+
+func _is_supported_resolution(resolution: Vector2i) -> bool:
+	if resolution.x <= 0 or resolution.y <= 0:
+		return false
+	if resolution == get_resolution():
+		return true
+	return STANDARD_RESOLUTIONS.has(resolution) and _fits_current_screen(resolution)
+
+
+func _fits_current_screen(resolution: Vector2i) -> bool:
+	var screen_size := DisplayServer.screen_get_size(DisplayServer.window_get_current_screen())
+	return screen_size.x <= 0 or screen_size.y <= 0 or (resolution.x <= screen_size.x and resolution.y <= screen_size.y)
 
 
 func _apply_key_bindings() -> void:
