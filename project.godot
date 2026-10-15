@@ -40,3 +40,11 @@ move_down={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"physical_keycode":83)]
 }
+ability={
+"deadzone": 0.2,
+"events": []
+}
+pause_game={
+"deadzone": 0.2,
+"events": []
+}

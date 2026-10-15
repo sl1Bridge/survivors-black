@@ -7,10 +7,12 @@ const PISTOL_SCRIPT: Script = preload("res://scripts/pistol.gd")
 const PICKUP_MANAGER_SCRIPT: Script = preload("res://scripts/pickup_manager.gd")
 const PROGRESSION_SCRIPT: Script = preload("res://scripts/progression.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
+const ABILITY_SCRIPT: Script = preload("res://scripts/ability.gd")
 
 var run_finished := false
 var profile: Node
 var pickups: Node2D
+var hud: CanvasLayer
 
 
 func configure_profile(profile_node: Node) -> void:
@@ -48,11 +50,12 @@ func _ready() -> void:
 	pickups.call("configure", player)
 	add_child(pickups)
 	pickups.connect("experience_collected", Callable(progression, "add_xp"))
+	pickups.connect("chest_collected", Callable(progression, "request_chest_choice"))
 
 	var spawner: Node2D = ENEMY_SPAWNER_SCRIPT.new() as Node2D
 	spawner.name = "EnemySpawner"
-	spawner.call("configure", player, enemies)
-	spawner.connect("enemy_defeated", Callable(pickups, "spawn_enemy_drops"))
+	spawner.call("configure", player, enemies, projectiles)
+	spawner.connect("enemy_defeated", Callable(pickups, "handle_enemy_defeated"))
 	add_child(spawner)
 
 	var pistol: Node = PISTOL_SCRIPT.new()
@@ -60,22 +63,38 @@ func _ready() -> void:
 	pistol.call("configure", player, inventory, projectiles)
 	add_child(pistol)
 
-	var hud: CanvasLayer = HUD_SCRIPT.new() as CanvasLayer
+	var ability: Node2D = ABILITY_SCRIPT.new() as Node2D
+	ability.name = "Ability"
+	ability.call("configure", player)
+	add_child(ability)
+
+	hud = HUD_SCRIPT.new() as CanvasLayer
 	hud.name = "HUD"
-	hud.call("configure", player, inventory, pickups, progression)
+	hud.call("configure", player, inventory, pickups, progression, ability, profile)
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(hud)
 	hud.connect("return_to_menu_pressed", Callable(self, "_return_to_menu"))
+	hud.connect("surrender_pressed", Callable(self, "_on_surrender_pressed"))
 
 	player.connect("died", Callable(self, "_on_player_died"))
 
 
 func _on_player_died() -> void:
+	_finish_run()
+
+
+func _on_surrender_pressed() -> void:
+	_finish_run()
+
+
+func _finish_run() -> void:
 	if run_finished:
 		return
 	run_finished = true
-	profile.call("finish_run", int(pickups.get("total_gold")))
+	var run_gold := int(pickups.get("total_gold"))
+	profile.call("finish_run", run_gold)
 	get_tree().paused = true
+	hud.call("show_run_finished", run_gold)
 
 
 func _return_to_menu() -> void:

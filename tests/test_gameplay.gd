@@ -9,6 +9,7 @@ const PICKUP_MANAGER_SCRIPT: Script = preload("res://scripts/pickup_manager.gd")
 const PROGRESSION_SCRIPT: Script = preload("res://scripts/progression.gd")
 const ENEMY_SPAWNER_SCRIPT: Script = preload("res://scripts/enemy_spawner.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
+const ABILITY_SCRIPT: Script = preload("res://scripts/ability.gd")
 
 var failures := 0
 
@@ -47,6 +48,7 @@ func _run() -> void:
 	pickup_manager.call("configure", player)
 	root.add_child(pickup_manager)
 	pickup_manager.connect("experience_collected", Callable(progression, "add_xp"))
+	pickup_manager.connect("chest_collected", Callable(progression, "request_chest_choice"))
 	var hud: CanvasLayer = HUD_SCRIPT.new() as CanvasLayer
 	hud.call("configure", player, inventory, pickup_manager, progression)
 	root.add_child(hud)
@@ -70,7 +72,7 @@ func _run() -> void:
 	enemy.add_to_group("enemies")
 	enemy.call("setup", player)
 	enemy.position = player.position + Vector2(120.0, 0.0)
-	enemy.connect("defeated", Callable(pickup_manager, "spawn_enemy_drops"))
+	enemy.connect("defeated", Callable(pickup_manager, "handle_enemy_defeated"))
 	root.add_child(enemy)
 	var farther_enemy: Node2D = ENEMY_SCENE.instantiate() as Node2D
 	farther_enemy.add_to_group("enemies")
@@ -118,6 +120,23 @@ func _run() -> void:
 	chasing_enemy.call("_process", 0.016)
 	_check(int(player.get("current_health")) == 80, "Contact damage should resume after its cooldown")
 
+	var ability: Node2D = ABILITY_SCRIPT.new() as Node2D
+	ability.call("configure", player)
+	root.add_child(ability)
+	var distance_before_wave := farther_enemy.global_position.distance_to(player.global_position)
+	_check(bool(ability.call("activate")), "Ability should activate when ready")
+	_check(absf(float(ability.get("cooldown_remaining")) - 30.0) < 0.01, "Ability should start its thirty-second cooldown")
+	_check(float(farther_enemy.get("knockback_remaining")) > 0.0, "Ability should knock back enemies in its radius")
+	farther_enemy.call("_process", 0.25)
+	_check(
+		farther_enemy.global_position.distance_to(player.global_position) > distance_before_wave,
+		"Knockback should move the enemy away from the player"
+	)
+	_check(int(farther_enemy.get("current_health")) == 30, "Knockback ability should not damage enemies")
+	_check(not bool(ability.call("activate")), "Ability should not activate during cooldown")
+	ability.call("_process", 30.0)
+	_check(float(ability.get("cooldown_remaining")) == 0.0, "Ability should become ready after thirty seconds")
+
 	var enemy_container := Node2D.new()
 	root.add_child(enemy_container)
 	var spawner: Node2D = ENEMY_SPAWNER_SCRIPT.new() as Node2D
@@ -140,11 +159,47 @@ func _run() -> void:
 		spawner.call("_spawn_enemy")
 	_check(get_nodes_in_group("enemies").size() <= 30, "Spawner should cap the number of active enemies")
 
-	progression.call("add_xp", 4)
-	_check(int(progression.get("current_level")) == 2, "Five XP should start the first level-up")
+	var elite: Node2D = ENEMY_SCENE.instantiate() as Node2D
+	elite.add_to_group("enemies")
+	elite.call("setup", player, true, projectile_container)
+	elite.global_position = player.global_position + Vector2(280.0, 0.0)
+	elite.connect("defeated", Callable(pickup_manager, "handle_enemy_defeated"))
+	root.add_child(elite)
+	var elite_start := elite.global_position
+	var projectiles_before_elite_shot := projectile_container.get_child_count()
+	elite.call("_process", 0.016)
+	_check(bool(elite.get("is_elite")), "Rare enemy should use elite behavior")
+	_check(int(elite.get("current_health")) == 60, "Elite enemy should have sixty health")
+	_check(elite.global_position.is_equal_approx(elite_start), "Elite should stop inside its ranged attack radius")
+	_check(projectile_container.get_child_count() == projectiles_before_elite_shot + 1, "Elite should fire a ranged projectile")
+	var ranged_projectile: Node2D = projectile_container.get_child(projectile_container.get_child_count() - 1) as Node2D
+	var projectile_start := ranged_projectile.global_position
+	var player_position_before_dodge := player.global_position
+	player.global_position += Vector2(0.0, 100.0)
+	ranged_projectile.call("_process", 1.0)
+	_check(absf(ranged_projectile.global_position.y - projectile_start.y) < 0.01, "Elite projectile should continue along a straight line")
+	_check(int(player.get("current_health")) == 80, "Dodging the straight-line projectile should avoid damage")
+	player.global_position = player_position_before_dodge
+
+	elite.call("take_damage", 60)
+	_check(bool(elite.get("is_defeated")), "Elite should be defeated at zero health")
+	var chest_pickup: Node2D
+	for pickup in pickup_manager.get_children():
+		if pickup.get("kind") == &"chest" and not pickup.get("is_collected"):
+			chest_pickup = pickup as Node2D
+	_check(is_instance_valid(chest_pickup), "Elite defeat should drop a chest in addition to normal loot")
+	player.global_position = elite.global_position
+	for pickup in pickup_manager.get_children():
+		pickup.call("_process", 0.0)
+	_check(bool(chest_pickup.get("is_collected")), "Chest should be picked up by contact")
+	_check(bool(progression.get("awaiting_upgrade_choice")), "Chest pickup should open the upgrade choice")
+	_check(bool(hud.get("upgrade_overlay").visible), "Chest should reuse the level-up choice window")
+	_check(str(hud.get("upgrade_title").text).contains("Сундук"), "Chest choice should be labelled")
+	progression.call("add_xp", 3)
+	_check(int(progression.get("current_level")) == 2, "Five XP should queue a level-up alongside the chest choice")
+	_check(progression.get("pending_choices").has(&"level"), "Level-up choice should wait behind the chest choice")
 	_check(bool(progression.get("awaiting_upgrade_choice")), "Level-up should wait for an upgrade choice")
 	_check(_tree_is_paused(), "Level-up should pause the game")
-	_check(bool(hud.get("upgrade_overlay").visible), "HUD should show upgrade choices on level-up")
 	var upgrade_panel: Control = hud.get("upgrade_overlay").get_child(0) as Control
 	var choices: HBoxContainer = upgrade_panel.get_child(0).get_child(1) as HBoxContainer
 	_check(choices.get_child_count() == 3, "Level-up HUD should show three choices")
@@ -157,8 +212,12 @@ func _run() -> void:
 	)
 	progression.call("choose_pistol_upgrade")
 	_check(int(inventory.get("pistol_level")) == 2, "Choosing the upgrade should raise pistol level")
-	_check(int(inventory.get("pistol_damage")) == 15, "Pistol upgrade should add five damage")
-	_check(absf(float(inventory.get("pistol_fire_rate")) - 1.25) < 0.001, "Pistol upgrade should increase fire rate by 25 percent")
+	_check(bool(progression.get("awaiting_upgrade_choice")), "Queued level-up should appear after chest selection")
+	_check(str(hud.get("upgrade_title").text).contains("Уровень 2"), "Queued choice should switch to the level-up prompt")
+	progression.call("choose_pistol_upgrade")
+	_check(int(inventory.get("pistol_level")) == 3, "Both chest and level-up choices should upgrade the pistol")
+	_check(int(inventory.get("pistol_damage")) == 20, "Each pistol choice should add five damage")
+	_check(absf(float(inventory.get("pistol_fire_rate")) - 1.5625) < 0.001, "Each pistol choice should increase fire rate by 25 percent")
 	_check(not _tree_is_paused(), "Choosing an upgrade should resume the game")
 	_check(not bool(hud.get("upgrade_overlay").visible), "HUD should hide upgrade choices after selection")
 

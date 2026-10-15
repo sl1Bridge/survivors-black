@@ -43,8 +43,14 @@ func _physics_process(delta: float) -> void:
 func take_contact_damage(amount: int) -> void:
 	if is_dead or damage_cooldown > 0.0:
 		return
-	current_health = maxi(0, current_health - amount)
 	damage_cooldown = CONTACT_DAMAGE_COOLDOWN
+	take_damage(amount)
+
+
+func take_damage(amount: int) -> void:
+	if is_dead:
+		return
+	current_health = maxi(0, current_health - amount)
 	health_changed.emit(current_health, max_health)
 	if current_health == 0:
 		is_dead = true

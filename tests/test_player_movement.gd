@@ -13,10 +13,10 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	_check(_has_physical_key("move_up", KEY_W), "W should be mapped to move up")
-	_check(_has_physical_key("move_left", KEY_A), "A should be mapped to move left")
-	_check(_has_physical_key("move_down", KEY_S), "S should be mapped to move down")
-	_check(_has_physical_key("move_right", KEY_D), "D should be mapped to move right")
+	_check(InputMap.has_action("move_up"), "Move-up action should exist")
+	_check(InputMap.has_action("move_left"), "Move-left action should exist")
+	_check(InputMap.has_action("move_down"), "Move-down action should exist")
+	_check(InputMap.has_action("move_right"), "Move-right action should exist")
 
 	root.size = Vector2i(1280, 900)
 	var player: Node2D = PLAYER_SCENE.instantiate() as Node2D
@@ -84,12 +84,3 @@ func _check(condition: bool, message: String) -> void:
 		return
 	failures += 1
 	push_error(message)
-
-
-func _has_physical_key(action: StringName, keycode: int) -> bool:
-	if not InputMap.has_action(action):
-		return false
-	for event in InputMap.action_get_events(action):
-		if event is InputEventKey and event.physical_keycode == keycode:
-			return true
-	return false

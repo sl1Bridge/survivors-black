@@ -34,6 +34,13 @@ func _run() -> void:
 	_check(absf(float(profile.call("get_pickup_radius")) - 80.0) < 0.01, "First pickup upgrade should add thirty-two pixels")
 	profile.call("set_sfx_volume", 35.0)
 	profile.call("set_music_volume", 65.0)
+	_check(bool(profile.call("set_key_binding", &"ability", KEY_R)), "Ability key binding should be changeable")
+	_check(bool(profile.call("set_key_binding", &"pause_game", KEY_P)), "Pause key binding should be changeable")
+	_check(not bool(profile.call("set_key_binding", &"move_up", KEY_R)), "Duplicate key binding should be rejected")
+	_check(
+		InputMap.action_get_events("ability")[0].physical_keycode == KEY_R,
+		"Changing a binding should update the live InputMap"
+	)
 	var sfx_bus := AudioServer.get_bus_index("SFX")
 	var music_bus := AudioServer.get_bus_index("Music")
 	_check(sfx_bus >= 0 and music_bus >= 0, "Separate SFX and Music buses should exist")
@@ -49,6 +56,12 @@ func _run() -> void:
 	_check(int(loaded_profile.get("pickup_radius_upgrade_level")) == 1, "Pickup upgrade should persist")
 	_check(absf(float(loaded_profile.get("sfx_volume")) - 35.0) < 0.01, "SFX volume should persist")
 	_check(absf(float(loaded_profile.get("music_volume")) - 65.0) < 0.01, "Music volume should persist")
+	_check(int(loaded_profile.call("get_key_binding", &"ability")) == KEY_R, "Ability binding should persist")
+	_check(int(loaded_profile.call("get_key_binding", &"pause_game")) == KEY_P, "Pause binding should persist")
+	_check(
+		InputMap.action_get_events("pause_game")[0].physical_keycode == KEY_P,
+		"Loaded bindings should be applied to the live InputMap"
+	)
 
 	var absolute_path := ProjectSettings.globalize_path(TEST_SAVE_PATH)
 	if FileAccess.file_exists(TEST_SAVE_PATH):

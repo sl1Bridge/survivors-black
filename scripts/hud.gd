@@ -1,11 +1,14 @@
 extends CanvasLayer
 
 signal return_to_menu_pressed
+signal surrender_pressed
 
 var player: Node
 var inventory: Node
 var pickup_manager: Node
 var progression: Node
+var ability: Node
+var profile: Node
 
 var slot_labels: Array[Label] = []
 var health_label: Label
@@ -17,13 +20,26 @@ var upgrade_overlay: ColorRect
 var upgrade_title: Label
 var game_over_overlay: ColorRect
 var game_over_gold_label: Label
+var pause_overlay: ColorRect
+var ability_label: Label
+var ability_bar: ProgressBar
+var run_finished := false
 
 
-func configure(player_node: Node, inventory_node: Node, pickup_node: Node, progression_node: Node) -> void:
+func configure(
+	player_node: Node,
+	inventory_node: Node,
+	pickup_node: Node,
+	progression_node: Node,
+	ability_node: Node = null,
+	profile_node: Node = null
+) -> void:
 	player = player_node
 	inventory = inventory_node
 	pickup_manager = pickup_node
 	progression = progression_node
+	ability = ability_node
+	profile = profile_node
 
 
 func _ready() -> void:
@@ -34,7 +50,9 @@ func _ready() -> void:
 	_build_inventory(root)
 	_build_health(root)
 	_build_experience(root)
+	_build_ability_indicator(root)
 	_build_upgrade_overlay(root)
+	_build_pause_overlay(root)
 	_build_game_over_overlay(root)
 	_connect_signals()
 	_on_health_changed(int(player.call("get_current_health")), int(player.call("get_max_health")))
@@ -45,6 +63,16 @@ func _ready() -> void:
 		int(progression.call("get_required_xp")),
 		int(progression.call("get_current_level"))
 	)
+
+
+func _process(_delta: float) -> void:
+	if run_finished or upgrade_overlay.visible or game_over_overlay.visible:
+		return
+	if Input.is_action_just_pressed("pause_game"):
+		if pause_overlay.visible:
+			_close_pause_menu()
+		else:
+			_open_pause_menu()
 
 
 func _build_inventory(root: Control) -> void:
@@ -101,6 +129,35 @@ func _build_experience(root: Control) -> void:
 	experience_box.add_child(xp_bar)
 
 
+func _build_ability_indicator(root: Control) -> void:
+	if not is_instance_valid(ability):
+		return
+	var panel := PanelContainer.new()
+	panel.anchor_top = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 16.0
+	panel.offset_right = 190.0
+	panel.offset_top = -104.0
+	panel.offset_bottom = -16.0
+	root.add_child(panel)
+	var content := VBoxContainer.new()
+	panel.add_child(content)
+	var icon_label := Label.new()
+	var ability_key := "F"
+	if is_instance_valid(profile):
+		ability_key = OS.get_keycode_string(int(profile.call("get_key_binding", &"ability")))
+	icon_label.text = "✦  Волна  [%s]" % ability_key
+	content.add_child(icon_label)
+	ability_label = Label.new()
+	content.add_child(ability_label)
+	ability_bar = ProgressBar.new()
+	ability_bar.max_value = 30.0
+	ability_bar.show_percentage = false
+	content.add_child(ability_bar)
+	ability.connect("cooldown_changed", Callable(self, "_on_ability_cooldown_changed"))
+	_on_ability_cooldown_changed(float(ability.call("get_cooldown_remaining")))
+
+
 func _build_upgrade_overlay(root: Control) -> void:
 	upgrade_overlay = ColorRect.new()
 	upgrade_overlay.color = Color(0.0, 0.0, 0.0, 0.72)
@@ -133,6 +190,34 @@ func _build_upgrade_overlay(root: Control) -> void:
 		button.custom_minimum_size = Vector2(210.0, 100.0)
 		button.pressed.connect(_on_upgrade_button_pressed)
 		choices.add_child(button)
+
+
+func _build_pause_overlay(root: Control) -> void:
+	pause_overlay = ColorRect.new()
+	pause_overlay.color = Color(0.0, 0.0, 0.0, 0.72)
+	pause_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pause_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	pause_overlay.visible = false
+	root.add_child(pause_overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pause_overlay.add_child(center)
+	var panel := PanelContainer.new()
+	center.add_child(panel)
+	var content := VBoxContainer.new()
+	panel.add_child(content)
+	var title := Label.new()
+	title.text = "Пауза"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(title)
+	var surrender_button := Button.new()
+	surrender_button.text = "Сдаться"
+	surrender_button.pressed.connect(_on_surrender_pressed)
+	content.add_child(surrender_button)
+	var close_button := Button.new()
+	close_button.text = "Закрыть"
+	close_button.pressed.connect(_close_pause_menu)
+	content.add_child(close_button)
 
 
 func _build_game_over_overlay(root: Control) -> void:
@@ -194,8 +279,11 @@ func _on_xp_changed(current_xp: int, required_xp: int, current_level: int) -> vo
 	xp_bar.value = current_xp
 
 
-func _on_upgrade_choices_started(current_level: int) -> void:
-	upgrade_title.text = "Уровень %d — выбери улучшение" % current_level
+func _on_upgrade_choices_started(current_level: int, source: StringName) -> void:
+	if source == &"chest":
+		upgrade_title.text = "Сундук — выбери улучшение"
+	else:
+		upgrade_title.text = "Уровень %d — выбери улучшение" % current_level
 	upgrade_overlay.visible = true
 
 
@@ -208,9 +296,41 @@ func _on_upgrade_button_pressed() -> void:
 
 
 func _on_player_died() -> void:
-	game_over_gold_label.text = "Получено золота: %d" % int(pickup_manager.get("total_gold"))
+	show_run_finished(int(pickup_manager.get("total_gold")))
+
+
+func show_run_finished(run_gold: int) -> void:
+	run_finished = true
+	pause_overlay.visible = false
+	game_over_gold_label.text = "Получено золота: %d" % run_gold
 	game_over_overlay.visible = true
 
 
 func _on_return_to_menu_pressed() -> void:
 	return_to_menu_pressed.emit()
+
+
+func _on_ability_cooldown_changed(seconds_remaining: float) -> void:
+	if not is_instance_valid(ability_label) or not is_instance_valid(ability_bar):
+		return
+	if seconds_remaining <= 0.0:
+		ability_label.text = "Готово"
+		ability_bar.value = 30.0
+	else:
+		ability_label.text = "%d с" % ceili(seconds_remaining)
+		ability_bar.value = 30.0 - seconds_remaining
+
+
+func _open_pause_menu() -> void:
+	pause_overlay.visible = true
+	get_tree().paused = true
+
+
+func _close_pause_menu() -> void:
+	pause_overlay.visible = false
+	get_tree().paused = false
+
+
+func _on_surrender_pressed() -> void:
+	pause_overlay.visible = false
+	surrender_pressed.emit()

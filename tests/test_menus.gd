@@ -2,6 +2,8 @@ extends SceneTree
 
 const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/main_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/settings_menu.tscn")
+const AUDIO_SETTINGS_SCENE: PackedScene = preload("res://scenes/audio_settings.tscn")
+const CONTROLS_MENU_SCENE: PackedScene = preload("res://scenes/controls_menu.tscn")
 const UPGRADES_MENU_SCENE: PackedScene = preload("res://scenes/upgrades_menu.tscn")
 const PROFILE_SCRIPT: Script = preload("res://scripts/game_profile.gd")
 const TEST_SAVE_PATH := "user://test_survivors_black_menus.cfg"
@@ -48,24 +50,52 @@ func _run() -> void:
 	await process_frame
 
 	var settings_menu: Control = SETTINGS_MENU_SCENE.instantiate() as Control
-	settings_menu.call("configure", profile)
 	root.add_child(settings_menu)
 	await process_frame
-	var sliders := settings_menu.find_children("*", "HSlider", true, false)
+	var settings_buttons := settings_menu.find_children("*", "Button", true, false)
+	var settings_labels: Array[String] = []
+	for button in settings_buttons:
+		settings_labels.append(button.text)
+	_check(settings_labels == ["Звук", "Управление", "Назад"], "Settings menu should contain sound, controls, and back")
+	settings_menu.queue_free()
+	await process_frame
+
+	var audio_settings: Control = AUDIO_SETTINGS_SCENE.instantiate() as Control
+	audio_settings.call("configure", profile)
+	root.add_child(audio_settings)
+	await process_frame
+	var sliders := audio_settings.find_children("*", "HSlider", true, false)
 	_check(sliders.size() == 2, "Settings should contain separate sound and music sliders")
 	_check(
-		absf(float(settings_menu.get("sfx_slider").value - float(profile.get("sfx_volume")))) < 0.01,
+		absf(float(audio_settings.get("sfx_slider").value - float(profile.get("sfx_volume")))) < 0.01,
 		"Sound slider should show the saved value"
 	)
 	_check(
-		absf(float(settings_menu.get("music_slider").value - float(profile.get("music_volume")))) < 0.01,
+		absf(float(audio_settings.get("music_slider").value - float(profile.get("music_volume")))) < 0.01,
 		"Music slider should show the saved value"
 	)
-	settings_menu.get("sfx_slider").value = 42.0
-	settings_menu.get("music_slider").value = 64.0
+	audio_settings.get("sfx_slider").value = 42.0
+	audio_settings.get("music_slider").value = 64.0
 	_check(absf(float(profile.get("sfx_volume")) - 42.0) < 0.01, "SFX slider should update its separate volume")
 	_check(absf(float(profile.get("music_volume")) - 64.0) < 0.01, "Music slider should update its separate volume")
-	settings_menu.queue_free()
+	audio_settings.queue_free()
+	await process_frame
+
+	var controls_menu: Control = CONTROLS_MENU_SCENE.instantiate() as Control
+	controls_menu.call("configure", profile)
+	root.add_child(controls_menu)
+	await process_frame
+	_check(controls_menu.get("binding_labels").size() == 6, "Controls screen should expose all six game actions")
+	controls_menu.call("_begin_rebind", &"ability")
+	var rebind_event := InputEventKey.new()
+	rebind_event.pressed = true
+	rebind_event.physical_keycode = KEY_R
+	controls_menu.call("_input", rebind_event)
+	_check(int(profile.call("get_key_binding", &"ability")) == KEY_R, "Ability key should be rebindable")
+	controls_menu.call("_begin_rebind", &"move_up")
+	controls_menu.call("_input", rebind_event)
+	_check(int(profile.call("get_key_binding", &"move_up")) == KEY_W, "Duplicate key bindings should be rejected")
+	controls_menu.queue_free()
 	await process_frame
 
 	var upgrades_menu: Control = UPGRADES_MENU_SCENE.instantiate() as Control

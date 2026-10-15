@@ -28,7 +28,7 @@ func _process(delta: float) -> void:
 	if distance <= touch_distance:
 		_collect()
 		return
-	if distance <= float(player.call("get_pickup_radius")) and distance > 0.0:
+	if kind != &"chest" and distance <= float(player.call("get_pickup_radius")) and distance > 0.0:
 		global_position = global_position.move_toward(player.global_position, MAGNET_SPEED * delta)
 		if global_position.distance_to(player.global_position) <= touch_distance:
 			_collect()
@@ -43,5 +43,10 @@ func _collect() -> void:
 
 
 func _draw() -> void:
+	if kind == &"chest":
+		draw_rect(Rect2(-9.0, -7.0, 18.0, 14.0), Color(0.55, 0.28, 0.08))
+		draw_rect(Rect2(-9.0, -9.0, 18.0, 5.0), Color(0.82, 0.58, 0.18))
+		draw_rect(Rect2(-1.0, -5.0, 2.0, 7.0), Color(1.0, 0.9, 0.35))
+		return
 	var color := EXPERIENCE_COLOR if kind == &"xp" else GOLD_COLOR
 	draw_circle(Vector2.ZERO, RADIUS, color)
